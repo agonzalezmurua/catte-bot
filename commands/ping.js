@@ -10,7 +10,7 @@ module.exports = {
    * Test if the bot is really alive or not
    * @param {import("discord.js").CommandInteraction} interaction
    */
-  handler: async (interaction) => {
+  async execute(interaction) {
     if (interaction.isCommand() === false) {
       return;
     }

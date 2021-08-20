@@ -28,11 +28,12 @@ async function connectToDatabase() {
 }
 
 const DatabaseClient = {
-  getChoices: async () => {
+  getAnswers: async () => {
     const { db } = await connectToDatabase();
     const collection = db.collection("answers");
 
-    const answers = collection.find();
+    const answers = await collection.find().toArray();
+    return answers;
   },
 };
 

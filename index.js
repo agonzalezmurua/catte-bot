@@ -2,18 +2,21 @@ require("dotenv").config();
 require("consola").wrapConsole();
 const { REST } = require("@discordjs/rest");
 const { Routes } = require("discord-api-types/v9");
-const { Client, Intents } = require("discord.js");
+const { Client, Intents, Collection } = require("discord.js");
 const fs = require("fs");
-const { CLIENT_ID, GUILD_ID, TOKEN } = process.env;
 
-// Commands section
+const { CLIENT_ID, GUILD_ID, TOKEN } = process.env;
+const client = new Client({ intents: [Intents.FLAGS.GUILDS] });
+client.commands = new Collection();
 const commands = [];
 const commandFiles = fs
   .readdirSync("./commands")
   .filter((file) => file.endsWith(".js"));
+
 for (const file of commandFiles) {
   const command = require(`./commands/${file}`);
   commands.push(command.data.toJSON());
+  client.commands.set(command.data.name, command);
 }
 
 const rest = new REST({ version: "9" }).setToken(TOKEN);
@@ -32,18 +35,32 @@ const rest = new REST({ version: "9" }).setToken(TOKEN);
   }
 })();
 
-const client = new Client({ intents: [Intents.FLAGS.GUILDS] });
-
 client.once("ready", () => {
   console.log(`Logged in as ${client.user.tag}`);
 });
 
 client.on("interactionCreate", async (interaction) => {
-  if (!interaction.isCommand()) return;
+  if (!interaction.isCommand()) {
+    return;
+  }
 
-  const command = require(`./commands/${interaction.commandName}`);
+  if (interaction.guildId !== GUILD_ID) {
+    return;
+  }
 
-  await command.handler(interaction);
+  const command = client.commands.get(interaction.commandName);
+
+  if (!command) return;
+
+  try {
+    await command.execute(interaction);
+  } catch (error) {
+    console.error(error);
+    await interaction.reply({
+      content: "There was an error while executing this command!",
+      ephemeral: true,
+    });
+  }
 });
 
 client.login(TOKEN);
